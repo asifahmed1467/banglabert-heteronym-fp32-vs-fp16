@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.zip
+*.safetensors
+models/
+heteronym_models_fp32/
+heteronym_models_fp16/
+out/
+test_report.txt
+bench_report*.txt
