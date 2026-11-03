@@ -1,0 +1,10 @@
+services:
+  heteronym-bench:
+    build: .
+    image: heteronym-bench-ui
+    ports:
+      - "8080:8080"
+    volumes:
+      # CHANGE the left side if your model folders are elsewhere
+      - C:/Users/Asif/heteronym_models_fp32:/models/fp32:ro
+      - C:/Users/Asif/heteronym_models_fp16:/models/fp16:ro

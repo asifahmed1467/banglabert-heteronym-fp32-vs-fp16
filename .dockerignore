@@ -1,0 +1,8 @@
+models/
+.venv/
+**/__pycache__/
+*.zip
+test_report.txt
+bench_report*.txt
+out/
+.git/
