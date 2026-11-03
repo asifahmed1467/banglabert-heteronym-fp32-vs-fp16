@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heteronym Benchmark</title>
+<style>
+:root{
+  --bg:#f5f6fb;--card:#fff;--ink:#14172b;--mute:#5d6485;--line:#e3e6f2;--soft:#eef0fa;
+  --c32:#4f46e5;--c16:#f59e0b;--ok:#0f9d6e;--bad:#dc3a4b;--accent:#4f46e5;
+  --shadow:0 1px 2px rgba(20,23,43,.06),0 8px 28px rgba(20,23,43,.07);
+  --hero:linear-gradient(135deg,#312e81 0%,#4f46e5 55%,#7c3aed 100%);
+}
+:root[data-theme=dark]{
+  --bg:#0c0e1a;--card:#151830;--ink:#eceefb;--mute:#9aa1c7;--line:#262a4a;--soft:#1c2040;
+  --c32:#8b85ff;--c16:#fbbf24;--ok:#34d399;--bad:#fb7185;--accent:#8b85ff;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  --hero:linear-gradient(135deg,#1e1b4b 0%,#312e81 55%,#4c1d95 100%);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali","Nirmala UI",sans-serif}
+.bn{font-family:"Noto Sans Bengali","Nirmala UI","Vrinda","Segoe UI",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header.hero{background:var(--hero);color:#fff;padding:34px 0 64px}
+.hero h1{margin:0 0 6px;font-size:30px;letter-spacing:-.5px}
+.hero p{margin:0;opacity:.85;max-width:760px}
+.hero .row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.pill{display:inline-flex;gap:8px;align-items:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:4px 12px;border-radius:99px;font-size:13px;margin:12px 8px 0 0}
+.dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}.dot.ok{background:#34d399}.dot.no{background:#fb7185}
+button{font:inherit;cursor:pointer}
+.ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);padding:7px 14px;border-radius:10px}
+main{margin-top:-40px;padding-bottom:60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
+.card h2{margin:0 0 4px;font-size:18px;letter-spacing:-.2px}
+.card .sub{color:var(--mute);margin:0 0 16px;font-size:13.5px}
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:22px}
+@media(max-width:520px){.charts{grid-template-columns:1fr}}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+textarea{width:100%;min-height:330px;resize:vertical;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--ink);padding:12px 14px;font:15px/1.7 "Noto Sans Bengali","Nirmala UI",system-ui,sans-serif}
+textarea:focus,select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+label.f{display:block;font-weight:600;font-size:13px;margin:0 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:4px;gap:4px;margin-bottom:16px}
+.seg button{flex:1;border:0;background:transparent;color:var(--mute);padding:8px 6px;border-radius:9px;font-weight:600}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0;font-size:14px}
+.chk input{margin-top:4px;accent-color:var(--accent)}
+.chk small{display:block;color:var(--mute)}
+.btn{background:var(--accent);color:#fff;border:0;padding:13px 20px;border-radius:12px;font-weight:700;font-size:16px;width:100%;box-shadow:0 6px 18px rgba(79,70,229,.35)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn2{background:var(--soft);color:var(--ink);border:1px solid var(--line);padding:8px 14px;border-radius:10px;font-weight:600}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;color:var(--mute);font-size:13px}
+.prog{height:10px;background:var(--soft);border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.prog>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--c32),var(--c16));transition:width .4s}
+.msg{color:var(--mute);font-size:13.5px;min-height:20px}
+.err{color:var(--bad);font-weight:600;white-space:pre-wrap}
+#results{display:none}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .l{color:var(--mute);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.kpi .v{font-size:30px;font-weight:800;letter-spacing:-1px;margin:2px 0}
+.kpi .s{color:var(--mute);font-size:13px}
+.note{border-left:4px solid var(--c16);background:var(--soft);padding:12px 16px;border-radius:0 12px 12px 0;margin:0 0 18px;font-size:14px}
+.note b{color:var(--ink)}
+.find li{margin:5px 0}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px}
+.chart h3{margin:0 0 2px;font-size:15px}.chart .sub{margin-bottom:6px}
+svg{width:100%;height:auto;display:block;overflow:visible}
+svg text{fill:var(--mute);font:11px system-ui,sans-serif}
+svg .val{fill:var(--ink);font-weight:700}
+svg .grid{stroke:var(--line);stroke-width:1}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--mute);margin-bottom:6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.modelhead{display:flex;align-items:center;gap:12px;margin:30px 0 14px}
+.modelhead h2{margin:0;font-size:22px;letter-spacing:-.4px}
+.tag{background:var(--soft);border:1px solid var(--line);padding:3px 10px;border-radius:99px;font-size:12.5px;color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+tr.diff td{background:rgba(220,58,75,.08)}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.mono{font-family:ui-monospace,Consolas,monospace}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.w{background:var(--soft);border-radius:12px;padding:12px 14px}.w .l{font-size:12px;color:var(--mute)}.w .v{font-size:20px;font-weight:800}
+footer{color:var(--mute);font-size:12.5px;text-align:center;padding:10px 0 40px}
+details summary{cursor:pointer;color:var(--mute);font-size:13px}
+pre{white-space:pre-wrap;font-size:12px;color:var(--mute)}
+@media print{
+  :root{--bg:#fff}
+  header.hero{background:#312e81!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:18px 0 30px}
+  #controls,.ghost,.noprint,footer{display:none!important}
+  main{margin-top:0}.card,.kpi{box-shadow:none;break-inside:avoid}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="row"><div>
+    <h1>Bangla Heteronym Models &middot; fp32 vs fp16</h1>
+    <p>Benchmark of the two BanglaBERT heteronym models stored in full (32-bit) and half (16-bit) precision: do the answers change, how fast, how big.</p>
+    <span class="pill"><span class="dot" id="d-base"></span><span id="t-base">base</span></span>
+    <span class="pill"><span class="dot" id="d-large"></span><span id="t-large">large</span></span>
+    <span class="pill" id="p-dev">device: &ndash;</span>
+  </div><button class="ghost noprint" id="theme">Light / Dark</button></div>
+</div></header>
+
+<main class="wrap">
+<section class="card" id="controls">
+  <div class="grid2">
+    <div>
+      <h2>Input sentences</h2>
+      <p class="sub">One Bangla sentence per line. Optional expected answer after <span class="mono">|||</span> to measure accuracy (20 samples are preloaded, max 200).</p>
+      <textarea id="txt" class="bn" spellcheck="false"></textarea>
+      <div class="tools"><button class="btn2" id="b-samples">Reset to 20 samples</button><button class="btn2" id="b-clear">Clear</button><span id="cnt"></span></div>
+    </div>
+    <div>
+      <h2>Options</h2>
+      <p class="sub">What to run.</p>
+      <label class="f">Models</label>
+      <div class="seg" id="seg"><button data-v="both" class="on">Both</button><button data-v="base">Base</button><button data-v="large">Large</button></div>
+      <label class="f">Timed repeats per sentence: <b id="rv">5</b></label>
+      <input type="range" id="rep" min="1" max="20" value="5">
+      <div class="chk"><input type="checkbox" id="wt" checked><div><b>Weight rounding analysis</b><small>Compares every fp32 weight with its fp16 value (error size, values rounded to zero). Takes about a minute for the large model.</small></div></div>
+      <button class="btn" id="run">Run benchmark</button>
+      <div class="prog"><i id="bar"></i></div>
+      <div class="msg" id="msg">Ready.</div>
+      <div class="err" id="err"></div>
+      <details><summary>log</summary><pre id="log"></pre></details>
+    </div>
+  </div>
+</section>
+
+<div id="results"></div>
+<footer>Heteronym benchmark &middot; CPU run &middot; agreement between precisions is not the same as accuracy</footer>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const C32=()=>getComputedStyle(document.documentElement).getPropertyValue('--c32').trim();
+const C16=()=>getComputedStyle(document.documentElement).getPropertyValue('--c16').trim();
+let cfg=null,model='both',last=null,samples=[];
+
+// ---- theme
+const root=document.documentElement;
+function setTheme(t){root.dataset.theme=t;try{localStorage.setItem('hb-theme',t)}catch(e){} if(last)render(last)}
+let t0='light';try{t0=localStorage.getItem('hb-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}catch(e){}
+root.dataset.theme=t0;
+$('#theme').onclick=()=>setTheme(root.dataset.theme==='dark'?'light':'dark');
+
+// ---- input
+function sampleText(){return samples.map(s=>typeof s==='string'?s:(s.text+(s.expected?' ||| '+s.expected:''))).join('\n')}
+function count(){const n=$('#txt').value.split('\n').filter(l=>l.trim()).length;$('#cnt').textContent=n+' sentence'+(n===1?'':'s')}
+$('#txt').oninput=count;
+$('#b-samples').onclick=()=>{$('#txt').value=sampleText();count()};
+$('#b-clear').onclick=()=>{$('#txt').value='';count()};
+$('#rep').oninput=e=>$('#rv').textContent=e.target.value;
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{model=b.dataset.v;document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b))});
+
+function parseInput(){
+  return $('#txt').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+    const i=l.indexOf('|||'); return i<0?{text:l}:{text:l.slice(0,i).trim(),expected:l.slice(i+3).trim()}});
+}
+
+async function init(){
+  try{
+    cfg=await (await fetch('/api/config')).json(); samples=cfg.samples;
+    $('#txt').value=sampleText();count();$('#p-dev').textContent='device: '+cfg.device;
+    for(const k of ['base','large']){const m=cfg.models[k],ok=m.fp32&&m.fp16;
+      $('#d-'+k).className='dot '+(ok?'ok':'no');$('#t-'+k).textContent=m.label+(ok?'':' (folder missing)')}
+  }catch(e){$('#err').textContent='Cannot reach the server: '+e}
+}
+
+// ---- run
+$('#run').onclick=async()=>{
+  $('#err').textContent='';$('#run').disabled=true;$('#bar').style.width='2%';$('#msg').textContent='Starting...';
+  const body={sentences:parseInput(),model,repeat:+$('#rep').value,weights:$('#wt').checked};
+  try{
+    const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||r.status);
+    poll(j.id);
+  }catch(e){fail(e.message)}
+};
+function fail(m){$('#err').textContent=m;$('#run').disabled=false;$('#bar').style.width='0'}
+async function poll(id){
+  try{
+    const j=await (await fetch('/api/job?id='+id)).json();
+    $('#bar').style.width=Math.max(2,j.progress*100)+'%';$('#msg').textContent=j.message;$('#log').textContent=(j.log||[]).join('\n');
+    if(j.status==='done'){$('#run').disabled=false;$('#msg').textContent='Finished.';last=j.result;render(j.result);document.getElementById('results').scrollIntoView();return}
+    if(j.status==='error'){fail(j.error);return}
+    setTimeout(()=>poll(id),800);
+  }catch(e){fail('Lost connection: '+e)}
+}
+
+// ---- charts (plain SVG, no libraries)
+function nice(max){const p=Math.pow(10,Math.floor(Math.log10(max||1))),f=max/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p}
+const fmt=(v,d=1)=>v==null||isNaN(v)?'n/a':(Math.abs(v)>=100?v.toFixed(0):v.toFixed(d));
+function bars(cats,series,unit,d=1){
+  const W=520,H=270,L=46,R=10,T=18,B=34,max=nice(Math.max(...series.flatMap(s=>s.values.filter(v=>v!=null)),0.001)*1.08);
+  const iw=W-L-R,ih=H-T-B,gw=iw/cats.length,bw=Math.min(46,gw/(series.length+1));
+  let g='';for(let i=0;i<=4;i++){const y=T+ih-ih*i/4;g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(max*i/4,max<10?1:0)}</text>`}
+  cats.forEach((c,ci)=>{const cx=L+gw*ci+gw/2;g+=`<text x="${cx}" y="${H-12}" text-anchor="middle">${esc(c)}</text>`;
+    series.forEach((s,si)=>{const v=s.values[ci];if(v==null)return;const h=ih*v/max,x=cx-(series.length*bw)/2+si*bw+2,y=T+ih-h;
+      g+=`<rect x="${x}" y="${y}" width="${bw-4}" height="${Math.max(h,1)}" rx="5" fill="${s.color}"/><text class="val" x="${x+(bw-4)/2}" y="${y-5}" text-anchor="middle">${fmt(v,d)}</text>`})});
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+function lines(n,sa,sb,ca,cb){
+  const W=520,H=250,L=46,R=10,T=14,B=30,max=nice(Math.max(...sa,...sb,0.001)*1.1),iw=W-L-R,ih=H-T-B;
+  const X=i=>L+(n===1?iw/2:iw*i/(n-1)),Y=v=>T+ih-ih*v/max;let g='';
+  for(let i=0;i<=4;i++){const y=T+ih-ih*i/4;g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(max*i/4,max<10?1:0)}</text>`}
+  const path=(a,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round" points="${a.map((v,i)=>X(i)+','+Y(v)).join(' ')}"/>`+a.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="3.2" fill="${c}"/>`).join('');
+  g+=path(sa,ca)+path(sb,cb);
+  for(let i=0;i<n;i+=Math.max(1,Math.ceil(n/10)))g+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle">${i+1}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${g}<text x="${W/2}" y="${H+2}" text-anchor="middle">sentence #</text></svg>`;
+}
+function scatter(a,b){
+  const W=520,H=270,L=46,R=14,T=14,B=36,max=nice(Math.max(...a,...b,0.001)*1.1),iw=W-L-R,ih=H-T-B;
+  const X=v=>L+iw*v/max,Y=v=>T+ih-ih*v/max;let g='';
+  for(let i=0;i<=4;i++){const y=T+ih-ih*i/4,x=L+iw*i/4;g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(max*i/4,max<10?1:0)}</text><text x="${x}" y="${H-18}" text-anchor="middle">${fmt(max*i/4,max<10?1:0)}</text>`}
+  g+=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(max)}" y2="${Y(max)}" stroke="${C32()}" stroke-dasharray="5 5" opacity=".6"/>`;
+  a.forEach((v,i)=>g+=`<circle cx="${X(v)}" cy="${Y(b[i])}" r="5" fill="${C16()}" fill-opacity=".8" stroke="#fff" stroke-width="1"/>`);
+  return `<svg viewBox="0 0 ${W} ${H}">${g}<text x="${W/2}" y="${H}" text-anchor="middle">fp32 ms per sentence</text></svg>`;
+}
+function donut(pct,label){
+  const r=62,c=2*Math.PI*r,d=c*pct/100,col=pct>=99.99?'var(--ok)':'var(--c16)';
+  return `<svg viewBox="0 0 200 170" style="max-width:240px;margin:auto"><circle cx="100" cy="85" r="${r}" fill="none" stroke="var(--soft)" stroke-width="16"/><circle cx="100" cy="85" r="${r}" fill="none" stroke="${col}" stroke-width="16" stroke-linecap="round" stroke-dasharray="${d} ${c}" transform="rotate(-90 100 85)"/><text x="100" y="92" text-anchor="middle" style="font-size:28px;font-weight:800;fill:var(--ink)">${pct.toFixed(pct===100?0:1)}%</text><text x="100" y="112" text-anchor="middle">${esc(label)}</text></svg>`;
+}
+const legend=()=>`<div class="legend"><span><i style="background:${C32()}"></i>fp32 files</span><span><i style="background:${C16()}"></i>fp16 files</span></div>`;
+const chart=(t,s,body,lg=true)=>`<div class="card chart"><h3>${t}</h3><div class="sub">${s}</div>${lg?legend():''}${body}</div>`;
+
+// ---- render
+function render(res){
+  const keys=Object.keys(res.models),el=$('#results');el.style.display='block';
+  const ok=keys.filter(k=>res.models[k].compare);
+  let h='';
+  if(!ok.length){h+=`<div class="card"><h2>No complete result</h2>`+keys.map(k=>['fp32','fp16'].map(p=>res.models[k][p].error?`<p class="err">${esc(res.models[k].label)} ${p}: ${esc(res.models[k][p].error)}</p>`:'').join('')).join('')+`</div>`;el.innerHTML=h;return}
+  // headline KPIs
+  const tot=ok.reduce((a,k)=>a+res.models[k].compare.n,0),agree=ok.reduce((a,k)=>a+res.models[k].compare.agree,0);
+  const m0=res.models[ok[0]],sav=ok.map(k=>res.models[k].compare.disk_saving_pct);
+  const dmed=ok.map(k=>res.models[k].compare.median_delta_pct);
+  const wmax=Math.max(...ok.map(k=>(res.models[k].weight_error||{}).rel_l2_err_pct||0));
+  h+=`<div class="kpis">
+   <div class="kpi"><div class="l">Identical answers</div><div class="v">${(100*agree/tot).toFixed(agree===tot?0:1)}%</div><div class="s">${agree} of ${tot} (fp32 vs fp16)</div></div>
+   <div class="kpi"><div class="l">Disk size saved</div><div class="v">${fmt(sav.reduce((a,b)=>a+b,0)/sav.length,0)}%</div><div class="s">fp16 weight files vs fp32</div></div>
+   <div class="kpi"><div class="l">Median speed change</div><div class="v">${dmed.reduce((a,b)=>a+b,0)/dmed.length>=0?'+':''}${fmt(dmed.reduce((a,b)=>a+b,0)/dmed.length,1)}%</div><div class="s">fp16 vs fp32 (CPU: noise)</div></div>
+   <div class="kpi"><div class="l">Weight rounding error</div><div class="v">${res.models[ok[0]].weight_error&&!res.models[ok[0]].weight_error.error?wmax.toFixed(3)+'%':'&ndash;'}</div><div class="s">relative L2 of all weights</div></div></div>`;
+  h+=`<div class="note"><b>How to read this.</b> On a CPU the fp16 weights are converted back to fp32 right after loading, so both runs do 32-bit maths. The test therefore measures one thing: <b>does rounding the stored weights to 16 bit change the model's answers?</b> Speed and RAM differences on CPU are noise; real fp16 speed and memory gains need a GPU. "Identical answers" shows agreement, not correctness; accuracy is only reported for sentences that have an expected answer.</div>`;
+  // findings
+  h+=`<div class="card"><h2>Findings</h2><ul class="find">`;
+  for(const k of ok){const m=res.models[k],c=m.compare,a=m.fp32,b=m.fp16;
+    h+=`<li><b>${esc(m.label)}:</b> ${c.agree} of ${c.n} answers identical (${c.agree_pct.toFixed(1)}%)${c.agree<c.n?`, <span class="bad">${c.n-c.agree} differ</span>`:''}; weights ${fmt(a.disk_mb,0)} MB &rarr; ${fmt(b.disk_mb,0)} MB (${fmt(c.disk_saving_pct,0)}% smaller); median ${fmt(a.median_ms)} ms vs ${fmt(b.median_ms)} ms.${c.accuracy?` Accuracy on ${c.accuracy.labeled} labeled: fp32 ${c.accuracy.correct_fp32}/${c.accuracy.labeled}, fp16 ${c.accuracy.correct_fp16}/${c.accuracy.labeled}.`:''}</li>`}
+  h+=`</ul></div>`;
+  // overview charts
+  const cats=ok.map(k=>k==='base'?'Base':'Large');
+  const S=(f,d)=>[{name:'fp32',color:C32(),values:ok.map(k=>f(res.models[k].fp32))},{name:'fp16',color:C16(),values:ok.map(k=>f(res.models[k].fp16))}];
+  h+=`<div class="charts">`
+   +chart('Latency per sentence','median and 95th percentile, ms (lower is better)',bars(cats.flatMap(c=>[c+' median',c+' p95']),[{color:C32(),values:ok.flatMap(k=>[res.models[k].fp32.median_ms,res.models[k].fp32.p95_ms])},{color:C16(),values:ok.flatMap(k=>[res.models[k].fp16.median_ms,res.models[k].fp16.p95_ms])}],'ms'))
+   +chart('Weight file size','MB on disk (lower is better)',bars(cats,S(x=>x.disk_mb),'MB',0))
+   +chart('Throughput','sentences per second (higher is better)',bars(cats,S(x=>x.throughput_sps),'/s',1))
+   +chart('Ready time','seconds from start until the first answer (load + first call; file cache affects it)',bars(cats,S(x=>x.ready_s),'s',1));
+  if(ok.every(k=>res.models[k].fp32.ram_mb!=null))h+=chart('Memory growth after first call','MB, approximate (process RSS)',bars(cats,S(x=>x.ram_mb),'MB',0));
+  h+=`</div>`;
+  // per model
+  for(const k of ok){
+    const m=res.models[k],c=m.compare,a=m.fp32,b=m.fp16,n=c.n;
+    h+=`<div class="modelhead"><h2>${esc(m.label)}</h2><span class="tag">${n} sentences</span><span class="tag">${res.meta.repeat} repeats each</span></div>`;
+    h+=`<div class="charts">`
+     +chart('Answer agreement','fp16 answers identical to fp32',donut(c.agree_pct,c.agree+' / '+n+' identical'),false)
+     +chart('Latency by sentence','median ms per sentence',lines(n,a.per_sentence_ms,b.per_sentence_ms,C32(),C16()))
+     +chart('fp32 vs fp16 time per sentence','points on the dashed line = same speed',scatter(a.per_sentence_ms,b.per_sentence_ms),false)+`</div>`;
+    if(a.n_model_sentences<n)h+=`<div class="note"><b>${n-a.n_model_sentences} of ${n} sentences never reached the neural model</b> (near-0 ms: no word the model handles, so plain rules answered). They are excluded from the latency numbers, and they count as identical answers by construction. Agreement is therefore measured on the other ${a.n_model_sentences} sentence(s) only.</div>`;
+    // stats table
+    const row=(l,x,y,d=1)=>`<tr><td>${l}</td><td class="num">${fmt(x,d)}</td><td class="num">${fmt(y,d)}</td></tr>`;
+    h+=`<div class="card"><h2>Numbers</h2><p class="sub">${esc(m.label)}</p><div class="tw"><table><tr><th>Metric</th><th class="num">fp32 files</th><th class="num">fp16 files</th></tr>`
+     +row('Weight files (MB)',a.disk_mb,b.disk_mb,0)+row('Load time (s)',a.load_s,b.load_s)+row('Ready time: load + first call (s)',a.ready_s,b.ready_s)+row('First call (ms)',a.first_call_ms,b.first_call_ms)
+     +row('Median latency (ms)',a.median_ms,b.median_ms)+row('Sentences that ran the neural model',a.n_model_sentences,b.n_model_sentences,0)+row('Mean latency (ms)',a.mean_ms,b.mean_ms)+row('p95 latency (ms)',a.p95_ms,b.p95_ms)
+     +row('Min latency (ms)',a.min_ms,b.min_ms)+row('Max latency (ms)',a.max_ms,b.max_ms)+row('Throughput (sentences/s)',a.throughput_sps,b.throughput_sps,2)+row('Std deviation (ms)',a.stdev_ms,b.stdev_ms)
+     +(a.ram_mb!=null?row('Memory growth (MB)',a.ram_mb,b.ram_mb,0):'')
+     +`<tr><td>Weights converted to fp32 for CPU run</td><td class="num">no</td><td class="num">${b.upcast_to_fp32?'yes':'no'}</td></tr></table></div></div>`;
+    const w=m.weight_error;
+    if(w&&!w.error)h+=`<div class="card"><h2>Weight rounding (fp32 &rarr; fp16)</h2><p class="sub">Every weight compared with its stored fp16 value &middot; ${(w.params/1e6).toFixed(1)} M values</p><div class="wgrid">
+      <div class="w"><div class="l">Relative L2 error</div><div class="v">${w.rel_l2_err_pct.toFixed(4)}%</div></div>
+      <div class="w"><div class="l">Mean absolute error</div><div class="v">${w.mean_abs_err.toExponential(2)}</div></div>
+      <div class="w"><div class="l">Largest single error</div><div class="v">${w.max_abs_err.toExponential(2)}</div></div>
+      <div class="w"><div class="l">Rounded to zero</div><div class="v">${w.flushed_to_zero.toLocaleString()}</div><div class="l">${w.flushed_pct.toFixed(4)}% of weights</div></div></div></div>`;
+    // sentence table
+    const acc=c.accuracy;
+    h+=`<div class="card"><h2>Answers sentence by sentence</h2><p class="sub">Red rows: fp16 answered differently.${acc?` Accuracy on ${acc.labeled} labeled sentence(s): fp32 ${acc.correct_fp32}, fp16 ${acc.correct_fp16}.`:''}</p><div class="tw"><table><tr><th>#</th><th>Input</th><th>fp32 output</th><th>fp16 output</th><th class="num">fp32 ms</th><th class="num">fp16 ms</th><th>Same</th></tr>`;
+    res.sentences.forEach((s,i)=>{h+=`<tr class="${c.match[i]?'':'diff'}"><td>${i+1}</td><td class="bn">${esc(s)}${res.expected[i]?`<br><small class="mute">expected: ${esc(res.expected[i])}</small>`:''}</td><td class="bn">${esc(a.outputs[i])}</td><td class="bn">${esc(b.outputs[i])}</td><td class="num">${fmt(a.per_sentence_ms[i])}</td><td class="num">${fmt(b.per_sentence_ms[i])}</td><td>${c.match[i]?'<span class="ok">yes</span>':'<span class="bad">NO</span>'}</td></tr>`});
+    h+=`</table></div></div>`;
+  }
+  for(const k of keys)for(const p of ['fp32','fp16'])if(res.models[k][p]&&res.models[k][p].error)h+=`<div class="card"><p class="err">${esc(res.models[k].label)} ${p}: ${esc(res.models[k][p].error)}</p></div>`;
+  h+=`<div class="card noprint"><h2>Export</h2><p class="sub">Run ${esc(res.meta.timestamp)} &middot; ${esc(res.meta.platform)} &middot; Python ${esc(res.meta.python)} &middot; torch ${esc(res.meta.torch)} (${res.meta.torch_threads||'?'} threads, ${res.meta.cpu_count} CPUs)</p>
+   <button class="btn2" onclick="dl('json')">Download JSON</button> <button class="btn2" onclick="dl('csv')">Download CSV</button> <button class="btn2" onclick="window.print()">Print / save as PDF</button></div>`;
+  el.innerHTML=h;
+}
+function dl(kind){
+  let data,name='heteronym_benchmark_'+last.meta.timestamp.replace(/[: ]/g,'-');
+  if(kind==='json'){data=JSON.stringify(last,null,1);name+='.json'}
+  else{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const rows=[['model','sentence_no','input','expected','fp32_output','fp16_output','same','fp32_ms','fp16_ms'].join(',')];
+    for(const k in last.models){const m=last.models[k];if(!m.compare)continue;last.sentences.forEach((s,i)=>rows.push([q(m.label),i+1,q(s),q(last.expected[i]||''),q(m.fp32.outputs[i]),q(m.fp16.outputs[i]),m.compare.match[i],m.fp32.per_sentence_ms[i].toFixed(2),m.fp16.per_sentence_ms[i].toFixed(2)].join(',')))}
+    data='\ufeff'+rows.join('\n');name+='.csv'}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/plain;charset=utf-8'}));a.download=name;a.click();
+}
+init();
+</script>
+</body>
+</html>
