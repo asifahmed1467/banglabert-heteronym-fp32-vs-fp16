@@ -1,0 +1,101 @@
+KIND	candidate
+PAD	7
+FIX	কর	করো	কোরো
+SENT	2	আগে কোরো কাজটা, তারপর আবার কোরো।	আগে কর কাজটা, তারপর আবার কর।
+SEG	আগে 
+SEG	 কাজটা, তারপর আবার 
+SEG	।
+ITEM	কর	কোরো	কর্	করো	কোরো
+ROW
+IDS	3 4 5 6
+MASK	1 1 1 1
+TYPES	0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0
+ROW
+IDS	3 4 9 12 6
+MASK	1 1 1 1 1
+TYPES	0 0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0 0
+ROW
+IDS	3 4 9 12 15 6
+MASK	1 1 1 1 1 1
+TYPES	0 0 0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0 0 0
+ITEM	কর	কোরো	কর্	করো	কোরো
+ROW
+IDS	2 8 8 8 1
+MASK	1 1 1 1 1
+TYPES	0 0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0 0
+ROW
+IDS	2 8 8 8 20 1
+MASK	1 1 1 1 1 1
+TYPES	0 0 0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0 0 0
+ROW
+IDS	2 8 8 8 30 1
+MASK	1 1 1 1 1 1
+TYPES	0 0 0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0 0 0
+SENT	0	এটা একটি বাক্য।	এটা একটি বাক্য।
+SEG	এটা একটি বাক্য।
+SENT	1	কালো সকালে যাব।	কাল সকালে যাব।
+SEG	
+SEG	 সকালে যাব।
+ITEM	কাল	কালো	কাল্	কালো
+ROW
+IDS	4 4 4
+MASK	1 1 1
+TYPES	0 0 0
+ANCHOR	1
+TARGET	0 0 1
+ROW
+IDS	4 4 4 100
+MASK	1 1 1 1
+TYPES	0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0
+SENT	1	নেগেটিভ টেস্ট কোরো।	নেগেটিভ টেস্ট কর।
+SEG	নেগেটিভ টেস্ট 
+SEG	।
+ITEM	কর	কোরো	কর্	করো	কোরো
+ROW
+IDS	-1000 5 5
+MASK	1 1 1
+TYPES	0 0 0
+ANCHOR	1
+TARGET	0 0 1
+ROW
+IDS	-1000 5 6
+MASK	1 1 1
+TYPES	0 0 0
+ANCHOR	1
+TARGET	0 0 1
+ROW
+IDS	-1000 5 7
+MASK	1 1 1
+TYPES	0 0 0
+ANCHOR	1
+TARGET	0 0 1
+SENT	1	প্যাডিং পরীক্ষা কাল্।	প্যাডিং পরীক্ষা কাল।
+SEG	প্যাডিং পরীক্ষা 
+SEG	।
+ITEM	কাল	কাল্	কাল্	কালো
+ROW
+IDS	5 5
+MASK	1 1
+TYPES	0 0
+ANCHOR	1
+TARGET	0 0
+ROW
+IDS	2 2 2 2 4
+MASK	1 1 1 1 1
+TYPES	0 0 0 0 0
+ANCHOR	1
+TARGET	0 0 1 0 0
