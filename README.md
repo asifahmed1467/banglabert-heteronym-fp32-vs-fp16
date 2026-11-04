@@ -17,7 +17,11 @@ model's answers change, and what do we save?
 | `tools/quant_demo.py` | small numpy demo of fp16 / int8 rounding, for learning |
 | `engine.py`, `server.py`, `static/` | benchmark web page: compares answers, latency, size and weight rounding error |
 | `benchmark.py` | the same comparison from the command line |
-| `Dockerfile`, `docker-compose.yml` | CPU container for the web page |
+| `cmp_prep.py`, `cmp_worker.py`, `cmp_runner.py`, `inputs_io.py` | the Python vs C++ benchmark: prepare inputs and the ONNX file, run each engine in its own process, compute the statistics |
+| `cpp/bench_ort.cpp` | C++ program that runs the model through ONNX Runtime (built inside the Docker image) |
+| `cpp_fp16_tools/` | C++ converter and checker for the fp32 to fp16 weights (own README, builds with CMake) |
+| `selftest/`, `cmp_selftest.py` | two tiny ONNX models to check that C++ and Python give the same answers |
+| `Dockerfile`, `docker-compose.yml` | CPU container for the web page (also builds the C++ program) |
 
 ## How to run
 
@@ -31,6 +35,21 @@ model's answers change, and what do we save?
    - `python server.py --fp32-dir <fp32 folder> --fp16-dir <fp16 folder> --host 127.0.0.1`
 
 Edit the two model paths in `docker-compose.yml` if your folders are elsewhere.
+
+## Python vs C++ tab
+
+Pick "Python vs C++" in the page. It compares three engines on the same pre-tokenized sentences:
+PyTorch from Python, ONNX Runtime from Python and ONNX Runtime from C++. The two ONNX engines load
+the same exported file, so "C++ vs ONNX Runtime from Python" shows the effect of the language alone.
+Same thread count for all, one warm-up pass, several rounds with the engine order rotated, and speed
+ratios are given with a 95% bootstrap interval over sentences.
+
+- Only the model call is in C++. The Bangla normalizer and tokenizer stay in Python, and the page shows
+  how large their share of the total time is.
+- The first run exports each model to ONNX (a few minutes, cached in a Docker volume afterwards).
+- Quick check without the models: `docker compose run --rm heteronym-bench cmp_selftest.py`.
+- The exporter and the PyTorch worker have only been tried on the real models by running the page,
+  not in automated tests.
 
 ## Things to know
 
