@@ -48,7 +48,8 @@ def make_handler(app: App):
             if url.path in ("/", "/index.html"):
                 self._send(200, (HERE / "static" / "index.html").read_bytes(), "text/html; charset=utf-8")
             elif url.path == "/api/config":
-                self._json(200, {"models": app.engine.availability(), "samples": app.samples, "device": app.engine.device})
+                self._json(200, {"models": app.engine.availability(), "samples": app.samples, "device": app.engine.device,
+                                 "cpp": app.engine.cpp_availability()})
             elif url.path == "/api/job":
                 job = app.engine.jobs.get((parse_qs(url.query).get("id") or [""])[0])
                 if job is None:

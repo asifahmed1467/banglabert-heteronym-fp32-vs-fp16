@@ -138,11 +138,16 @@ class Engine:
         self.fp32_dir, self.fp16_dir, self.device = Path(fp32_dir), Path(fp16_dir), device
         self.jobs: Dict[str, Job] = {}
         self._lock = threading.Lock()
+        from cmp_runner import CompareRunner  # Python-vs-C++ benchmark (standard library only)
+        self.cmp = CompareRunner(self.fp32_dir, self.fp16_dir)
 
     # ---------- public API ----------
     def availability(self) -> Dict[str, Any]:
         return {k: {"label": MODEL_LABELS[k], "fp32": (self.fp32_dir / v).is_dir(), "fp16": (self.fp16_dir / v).is_dir()}
                 for k, v in MODEL_FOLDERS.items()}
+
+    def cpp_availability(self) -> Dict[str, Any]:
+        return self.cmp.availability()
 
     @staticmethod
     def parse_params(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -160,7 +165,20 @@ class Engine:
         if model not in ("base", "large", "both"):
             raise ValueError("model must be base, large or both")
         repeat = max(1, min(MAX_REPEAT, int(raw.get("repeat", 5))))
-        return {"items": items, "model": model, "repeat": repeat, "weights": bool(raw.get("weights", True))}
+        mode = raw.get("mode", "fp")
+        if mode not in ("fp", "cpp"):
+            raise ValueError("mode must be fp or cpp")
+        out = {"items": items, "model": model, "repeat": repeat, "weights": bool(raw.get("weights", True)), "mode": mode}
+        if mode == "cpp":
+            engines = [e for e in ("torch", "ort_py", "cpp") if e in (raw.get("engines") or ["torch", "ort_py", "cpp"])]
+            precisions = [p for p in ("fp32", "fp16") if p in (raw.get("precisions") or ["fp32"])]
+            if len(engines) < 2:
+                raise ValueError("pick at least two engines to compare")
+            if not precisions:
+                raise ValueError("pick fp32 and/or fp16 files")
+            out.update(engines=engines, precisions=precisions, rounds=max(1, min(4, int(raw.get("rounds", 2)))),
+                       threads=max(0, min(256, int(raw.get("threads", 0)))))
+        return out
 
     def start(self, raw: Dict[str, Any]) -> Job:
         params = self.parse_params(raw)
@@ -229,6 +247,8 @@ class Engine:
                 "per_sentence_ms": per_sentence, "outputs": outputs}
 
     def _run(self, job: Job, params: Dict[str, Any]) -> Dict[str, Any]:
+        if params["mode"] == "cpp":
+            return self.cmp.run(job, params, MODEL_FOLDERS, MODEL_LABELS)
         items, repeat = params["items"], params["repeat"]
         keys = ["base", "large"] if params["model"] == "both" else [params["model"]]
         steps = len(keys) * 2 + (len(keys) if params["weights"] else 0)

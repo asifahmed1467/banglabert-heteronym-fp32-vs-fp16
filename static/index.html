@@ -7,13 +7,13 @@
 <style>
 :root{
   --bg:#f5f6fb;--card:#fff;--ink:#14172b;--mute:#5d6485;--line:#e3e6f2;--soft:#eef0fa;
-  --c32:#4f46e5;--c16:#f59e0b;--ok:#0f9d6e;--bad:#dc3a4b;--accent:#4f46e5;
+  --c32:#4f46e5;--c16:#f59e0b;--cc:#0f9d6e;--ok:#0f9d6e;--bad:#dc3a4b;--accent:#4f46e5;
   --shadow:0 1px 2px rgba(20,23,43,.06),0 8px 28px rgba(20,23,43,.07);
   --hero:linear-gradient(135deg,#312e81 0%,#4f46e5 55%,#7c3aed 100%);
 }
 :root[data-theme=dark]{
   --bg:#0c0e1a;--card:#151830;--ink:#eceefb;--mute:#9aa1c7;--line:#262a4a;--soft:#1c2040;
-  --c32:#8b85ff;--c16:#fbbf24;--ok:#34d399;--bad:#fb7185;--accent:#8b85ff;
+  --c32:#8b85ff;--c16:#fbbf24;--cc:#34d399;--ok:#34d399;--bad:#fb7185;--accent:#8b85ff;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
   --hero:linear-gradient(135deg,#1e1b4b 0%,#312e81 55%,#4c1d95 100%);
 }
@@ -85,6 +85,12 @@ tr.diff td{background:rgba(220,58,75,.08)}
 .mono{font-family:ui-monospace,Consolas,monospace}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .w{background:var(--soft);border-radius:12px;padding:12px 14px}.w .l{font-size:12px;color:var(--mute)}.w .v{font-size:20px;font-weight:800}
+input[type=number]{width:90px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);padding:6px 8px;font:inherit}
+.engs label{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+.engs small{color:var(--mute)}
+.warnbox{border-left:4px solid var(--bad);background:var(--soft);padding:12px 16px;border-radius:0 12px 12px 0;margin:0 0 18px;font-size:14px}
+.mute{color:var(--mute)}
+td.good{color:var(--ok);font-weight:700}td.slow{color:var(--bad);font-weight:700}td.same{color:var(--mute)}
 footer{color:var(--mute);font-size:12.5px;text-align:center;padding:10px 0 40px}
 details summary{cursor:pointer;color:var(--mute);font-size:13px}
 pre{white-space:pre-wrap;font-size:12px;color:var(--mute)}
@@ -100,8 +106,8 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute)}
 <body>
 <header class="hero"><div class="wrap">
   <div class="row"><div>
-    <h1>Bangla Heteronym Models &middot; fp32 vs fp16</h1>
-    <p>Benchmark of the two BanglaBERT heteronym models stored in full (32-bit) and half (16-bit) precision: do the answers change, how fast, how big.</p>
+    <h1>Bangla Heteronym Models &middot; Benchmark</h1>
+    <p id="herop">Two benchmarks on the BanglaBERT heteronym models: <b>fp32 vs fp16</b> files (answers, size, speed) and <b>Python vs C++</b> (same inputs, same threads, same model).</p>
     <span class="pill"><span class="dot" id="d-base"></span><span id="t-base">base</span></span>
     <span class="pill"><span class="dot" id="d-large"></span><span id="t-large">large</span></span>
     <span class="pill" id="p-dev">device: &ndash;</span>
@@ -120,11 +126,27 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute)}
     <div>
       <h2>Options</h2>
       <p class="sub">What to run.</p>
+      <label class="f">Benchmark type</label>
+      <div class="seg" id="modeseg"><button data-v="fp" class="on">fp32 vs fp16</button><button data-v="cpp">Python vs C++</button></div>
       <label class="f">Models</label>
       <div class="seg" id="seg"><button data-v="both" class="on">Both</button><button data-v="base">Base</button><button data-v="large">Large</button></div>
-      <label class="f">Timed repeats per sentence: <b id="rv">5</b></label>
+      <label class="f"><span id="replab">Timed repeats per sentence</span>: <b id="rv">5</b></label>
       <input type="range" id="rep" min="1" max="20" value="5">
-      <div class="chk"><input type="checkbox" id="wt" checked><div><b>Weight rounding analysis</b><small>Compares every fp32 weight with its fp16 value (error size, values rounded to zero). Takes about a minute for the large model.</small></div></div>
+      <div id="cppopts" style="display:none">
+        <label class="f" style="margin-top:12px">Model files to use</label>
+        <div class="engs"><label><input type="checkbox" id="pr32" checked> fp32 files</label>
+          <label><input type="checkbox" id="pr16"> fp16 files <small>(CPU maths is the same, so speed is expected to match fp32)</small></label></div>
+        <label class="f" style="margin-top:12px">Engines to compare</label>
+        <div class="engs" id="engs">
+          <label><input type="checkbox" value="torch" checked> PyTorch from Python <small>(what the project does now)</small></label>
+          <label><input type="checkbox" value="ort_py" checked> ONNX Runtime from Python <small>(same graph as C++: isolates the language)</small></label>
+          <label><input type="checkbox" value="cpp" checked> ONNX Runtime from C++ <small id="cppstat"></small></label></div>
+        <label class="f" style="margin-top:12px">Rounds (engines run in rotated order): <b id="rdv">2</b></label>
+        <input type="range" id="rounds" min="1" max="4" value="2">
+        <label class="f" style="margin-top:12px">CPU threads for every engine <small>(0 = all: <span id="thdef">?</span>)</small></label>
+        <input type="number" id="thr" min="0" max="256" value="0">
+      </div>
+      <div class="chk" id="fpopts"><input type="checkbox" id="wt" checked><div><b>Weight rounding analysis</b><small>Compares every fp32 weight with its fp16 value (error size, values rounded to zero). Takes about a minute for the large model.</small></div></div>
       <button class="btn" id="run">Run benchmark</button>
       <div class="prog"><i id="bar"></i></div>
       <div class="msg" id="msg">Ready.</div>
@@ -143,7 +165,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const C32=()=>getComputedStyle(document.documentElement).getPropertyValue('--c32').trim();
 const C16=()=>getComputedStyle(document.documentElement).getPropertyValue('--c16').trim();
-let cfg=null,model='both',last=null,samples=[];
+let cfg=null,model='both',mode='fp',last=null,samples=[];
 
 // ---- theme
 const root=document.documentElement;
@@ -159,6 +181,10 @@ $('#txt').oninput=count;
 $('#b-samples').onclick=()=>{$('#txt').value=sampleText();count()};
 $('#b-clear').onclick=()=>{$('#txt').value='';count()};
 $('#rep').oninput=e=>$('#rv').textContent=e.target.value;
+$('#rounds').oninput=e=>$('#rdv').textContent=e.target.value;
+document.querySelectorAll('#modeseg button').forEach(b=>b.onclick=()=>{mode=b.dataset.v;document.querySelectorAll('#modeseg button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#cppopts').style.display=mode==='cpp'?'block':'none';$('#fpopts').style.display=mode==='cpp'?'none':'flex';
+  $('#replab').textContent=mode==='cpp'?'Timed repeats per sentence, per round':'Timed repeats per sentence';$('#run').textContent=mode==='cpp'?'Run Python vs C++ benchmark':'Run benchmark'});
 document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{model=b.dataset.v;document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b))});
 
 function parseInput(){
@@ -170,6 +196,8 @@ async function init(){
   try{
     cfg=await (await fetch('/api/config')).json(); samples=cfg.samples;
     $('#txt').value=sampleText();count();$('#p-dev').textContent='device: '+cfg.device;
+    if(cfg.cpp){$('#thdef').textContent=cfg.cpp.default_threads+' threads';$('#cppstat').textContent=cfg.cpp.cpp?'(program found)':'(NOT built: rebuild the image)';
+      document.querySelectorAll('#engs input').forEach(x=>{const ok=cfg.cpp[x.value];if(!ok){x.checked=false;x.disabled=true}})}
     for(const k of ['base','large']){const m=cfg.models[k],ok=m.fp32&&m.fp16;
       $('#d-'+k).className='dot '+(ok?'ok':'no');$('#t-'+k).textContent=m.label+(ok?'':' (folder missing)')}
   }catch(e){$('#err').textContent='Cannot reach the server: '+e}
@@ -178,7 +206,9 @@ async function init(){
 // ---- run
 $('#run').onclick=async()=>{
   $('#err').textContent='';$('#run').disabled=true;$('#bar').style.width='2%';$('#msg').textContent='Starting...';
-  const body={sentences:parseInput(),model,repeat:+$('#rep').value,weights:$('#wt').checked};
+  const body={sentences:parseInput(),model,repeat:+$('#rep').value,weights:$('#wt').checked,mode};
+  if(mode==='cpp'){body.precisions=[$('#pr32').checked&&'fp32',$('#pr16').checked&&'fp16'].filter(Boolean);body.rounds=+$('#rounds').value;body.threads=+$('#thr').value||0;
+    body.engines=[...document.querySelectorAll('#engs input:checked')].map(x=>x.value)}
   try{
     const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const j=await r.json(); if(!r.ok) throw new Error(j.error||r.status);
@@ -234,6 +264,7 @@ const chart=(t,s,body,lg=true)=>`<div class="card chart"><h3>${t}</h3><div class
 
 // ---- render
 function render(res){
+  if(res.mode==='cpp')return renderCpp(res);
   const keys=Object.keys(res.models),el=$('#results');el.style.display='block';
   const ok=keys.filter(k=>res.models[k].compare);
   let h='';
@@ -298,13 +329,126 @@ function render(res){
    <button class="btn2" onclick="dl('json')">Download JSON</button> <button class="btn2" onclick="dl('csv')">Download CSV</button> <button class="btn2" onclick="window.print()">Print / save as PDF</button></div>`;
   el.innerHTML=h;
 }
+function dlCpp(kind){
+  const M=last.meta;let data,name='heteronym_cpp_vs_python_'+M.timestamp.replace(/[: ]/g,'-');
+  if(kind==='json'){data=JSON.stringify(last,null,1);name+='.json'}
+  else{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const rows=[['model','files','sentence_no','input','project_answer','engine','engine_answer','same_as_project','median_ms'].join(',')];
+    for(const k in last.models)for(const p in last.models[k].precisions){const c=last.models[k].precisions[p];if(c.error)continue;
+      for(const e in c.engines){const x=c.engines[e];if(x.error)continue;last.sentences.forEach((s,i)=>rows.push([q(last.models[k].label),p,i+1,q(s),q((c.prep.ref_outputs||[])[i]||''),e,q(x.outputs[i]),(c.prep.ref_outputs||[])[i]===x.outputs[i],x.per_sentence_ms[i].toFixed(4)].join(',')))}}
+    data='\ufeff'+rows.join('\n');name+='.csv'}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/plain;charset=utf-8'}));a.download=name;a.click();
+}
 function dl(kind){
+  if(last&&last.mode==='cpp')return dlCpp(kind);
   let data,name='heteronym_benchmark_'+last.meta.timestamp.replace(/[: ]/g,'-');
   if(kind==='json'){data=JSON.stringify(last,null,1);name+='.json'}
   else{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const rows=[['model','sentence_no','input','expected','fp32_output','fp16_output','same','fp32_ms','fp16_ms'].join(',')];
     for(const k in last.models){const m=last.models[k];if(!m.compare)continue;last.sentences.forEach((s,i)=>rows.push([q(m.label),i+1,q(s),q(last.expected[i]||''),q(m.fp32.outputs[i]),q(m.fp16.outputs[i]),m.compare.match[i],m.fp32.per_sentence_ms[i].toFixed(2),m.fp16.per_sentence_ms[i].toFixed(2)].join(',')))}
     data='\ufeff'+rows.join('\n');name+='.csv'}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/plain;charset=utf-8'}));a.download=name;a.click();
+}
+// ---- Python vs C++ results
+const ENG={torch:'PyTorch (Python)',ort_py:'ONNX Runtime (Python)',cpp:'ONNX Runtime (C++)'};
+const engColor=()=>({torch:C32(),ort_py:C16(),cpp:getComputedStyle(document.documentElement).getPropertyValue('--cc').trim()});
+function ebars(items,d=1){
+  const W=520,H=250,L=46,R=10,T=18,B=44,max=nice(Math.max(...items.map(i=>i.value||0),0.001)*1.1),iw=W-L-R,ih=H-T-B,gw=iw/items.length,bw=Math.min(70,gw*0.6);
+  let g='';for(let i=0;i<=4;i++){const y=T+ih-ih*i/4;g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(max*i/4,max<1?3:max<10?1:0)}</text>`}
+  items.forEach((it,i)=>{const cx=L+gw*i+gw/2,v=it.value;g+=`<text x="${cx}" y="${H-24}" text-anchor="middle">${esc(it.label)}</text>`;
+    if(v==null)return;const h=ih*v/max,y=T+ih-h;g+=`<rect x="${cx-bw/2}" y="${y}" width="${bw}" height="${Math.max(h,1)}" rx="5" fill="${it.color}"/><text class="val" x="${cx}" y="${y-5}" text-anchor="middle">${fmt(v,d)}</text>`});
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+function linesN(n,series){
+  const W=520,H=250,L=46,R=10,T=14,B=30,max=nice(Math.max(...series.flatMap(s=>s.values),0.001)*1.1),iw=W-L-R,ih=H-T-B;
+  const X=i=>L+(n===1?iw/2:iw*i/(n-1)),Y=v=>T+ih-ih*v/max;let g='';
+  for(let i=0;i<=4;i++){const y=T+ih-ih*i/4;g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(max*i/4,max<1?3:max<10?1:0)}</text>`}
+  series.forEach(s=>{g+=`<polyline fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round" points="${s.values.map((v,i)=>X(i)+','+Y(v)).join(' ')}"/>`+s.values.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="3" fill="${s.color}"/>`).join('')});
+  for(let i=0;i<n;i+=Math.max(1,Math.ceil(n/10)))g+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle">${i+1}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${g}<text x="${W/2}" y="${H+2}" text-anchor="middle">sentence # (only sentences that reach the model)</text></svg>`;
+}
+function stack(rows,unit){
+  const W=520,rh=46,L=215,R=70,H=rows.length*rh+34,max=Math.max(...rows.map(r=>r.parts.reduce((a,p)=>a+p.v,0)),0.001),iw=W-L-R;let g='';
+  rows.forEach((r,i)=>{const y=14+i*rh;let x=L;g+=`<text x="${L-8}" y="${y+16}" text-anchor="end">${esc(r.label)}</text>`;
+    r.parts.forEach(p=>{const w=iw*p.v/max;g+=`<rect x="${x}" y="${y}" width="${Math.max(w,1)}" height="26" fill="${p.color}"/>`;x+=w});
+    g+=`<text class="val" x="${x+6}" y="${y+18}">${fmt(r.parts.reduce((a,p)=>a+p.v,0),1)} ${unit}</text>`});
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+function pairOf(c,a,b){return (c.compare||[]).find(p=>p.a===a&&p.b===b)}
+function ratioCell(c,a,b){
+  const p=pairOf(c,a,b);if(!p||!p.n)return '<td class="same">n/a</td>';
+  const ci=p.ci,cls=ci?(ci[0]>1?'good':ci[1]<1?'slow':'same'):'same';
+  return `<td class="${cls}">${p.ratio_median.toFixed(2)}&times;<br><small class="mute">${ci?`95%: ${ci[0].toFixed(2)}&ndash;${ci[1].toFixed(2)}`:'few sentences'}</small></td>`;
+}
+function renderCpp(res){
+  const el=$('#results');el.style.display='block';const EC=engColor(),M=res.meta;
+  const cfgs=[];for(const k in res.models)for(const p in res.models[k].precisions)cfgs.push({k,p,label:res.models[k].label,c:res.models[k].precisions[p]});
+  let h='';
+  const good=cfgs.filter(x=>!x.c.error);
+  for(const x of cfgs)if(x.c.error)h+=`<div class="card"><p class="err">${esc(x.label)} ${x.p}: ${esc(x.c.error)}</p></div>`;
+  if(!good.length){el.innerHTML=h;return}
+  const f0=good[0];
+  const q=(a,b)=>pairOf(f0.c,a,b);const kp=(l,a,b,s)=>{const p=q(a,b);return `<div class="kpi"><div class="l">${l}</div><div class="v">${p&&p.n?p.ratio_median.toFixed(2)+'&times;':'&ndash;'}</div><div class="s">${s}${p&&p.ci?` &middot; 95% ${p.ci[0].toFixed(2)}&ndash;${p.ci[1].toFixed(2)}`:''}</div></div>`};
+  const e2=f0.c.end_to_end||{},sh=e2.cpp||e2.torch||e2.ort_py;
+  h+=`<div class="kpis">`+kp('C++ vs PyTorch','cpp','torch','&gt;1 = C++ faster')+kp('C++ vs Python (same engine)','cpp','ort_py','language only')+kp('ONNX Runtime vs PyTorch','ort_py','torch','framework only (both Python)')
+   +(sh?`<div class="kpi"><div class="l">Python tokenizing share</div><div class="v">${fmt(sh.tokenize_share_pct,0)}%</div><div class="s">of total time stays in Python (C++ can't help)</div></div>`:'')+`</div>`;
+  h+=`<div class="note"><b>How to read this.</b> A ratio is <i>time of the second engine / time of the first</i> on the same sentences, so <b>2.00&times; = twice as fast</b>, 1.00&times; = same, below 1 = slower. The interval is a bootstrap over sentences; if it contains 1.0 there is <b>no proven difference</b>. The timed part is everything <i>after</i> tokenizing (batch, model, answer); the Bangla normalizer and tokenizer are Python in every row, because the C++ program only runs the model.</div>`;
+  // summary table
+  h+=`<div class="card"><h2>Summary</h2><p class="sub">Median of per-sentence speed ratios, with 95% interval. Green = proven faster, red = proven slower, grey = no clear difference.</p><div class="tw"><table><tr><th>Model</th><th>Files</th><th>C++ vs PyTorch</th><th>C++ vs Python ONNX Runtime</th><th>Python ONNX Runtime vs PyTorch</th><th>Answers same as project</th></tr>`;
+  for(const x of good){const par=x.c.parity||{},pa=Object.entries(par).map(([e,v])=>`${{torch:'PyTorch',ort_py:'ORT-Python',cpp:'C++'}[e]} ${v.same_as_project}/${v.compared}`).join(', ');
+    h+=`<tr><td>${esc(x.label)}</td><td>${x.p}</td>${ratioCell(x.c,'cpp','torch')}${ratioCell(x.c,'cpp','ort_py')}${ratioCell(x.c,'ort_py','torch')}<td>${pa||'n/a'}</td></tr>`}
+  h+=`</table></div></div>`;
+  for(const x of good){
+    const c=x.c,E=Object.keys(c.engines).filter(e=>!c.engines[e].error),n=res.sentences.length;
+    h+=`<div class="modelhead"><h2>${esc(x.label)}</h2><span class="tag">${x.p} files</span><span class="tag">${n} sentences, ${c.n_model_sentences} reach the model</span><span class="tag">${M.rounds} rounds &times; ${M.repeat} calls</span><span class="tag">${M.threads} threads</span></div>`;
+    for(const e in c.engines)if(c.engines[e].error)h+=`<div class="warnbox"><b>${esc(ENG[e])}</b> did not run: <pre>${esc(c.engines[e].error)}</pre></div>`;
+    if(c.prep&&c.prep.prep_mismatch)h+=`<div class="warnbox">${c.prep.prep_mismatch} sentence(s) rebuilt from the model inputs differ from the project's own answer; the input file may not match the project's pipeline exactly.</div>`;
+    const ex=c.prep&&c.prep.export;if(ex&&ex.ok===false)h+=`<div class="warnbox">ONNX export problem: ${esc(ex.error||('score differs from PyTorch by '+ex.max_diff_vs_torch))}. The ONNX engines are not trusted.</div>`;
+    const drift=E.filter(e=>c.engines[e].drift_pct!=null&&Math.abs(c.engines[e].drift_pct)>10);
+    if(drift.length)h+=`<div class="warnbox"><b>Unstable machine:</b> ${drift.map(e=>ENG[e]+' '+c.engines[e].drift_pct.toFixed(0)+'%').join(', ')} change between the first and last round (other programs running, CPU throttling, Docker CPU limit). Treat small differences as noise or repeat with the PC idle.</div>`;
+    const med=E.map(e=>({label:ENG[e].replace(' (','\n(').split('\n')[0],color:EC[e],value:c.engines[e].median_ms}));
+    const lg=`<div class="legend">${E.map(e=>`<span><i style="background:${EC[e]}"></i>${ENG[e]}</span>`).join('')}</div>`;
+    const idx=(c.prep.has_items||[]).map((v,i)=>v?i:-1).filter(i=>i>=0);
+    h+=`<div class="charts">`
+     +`<div class="card chart"><h3>Median time per sentence</h3><div class="sub">ms, model part only, lower is better</div>${lg}${ebars(E.map(e=>({label:ENG[e].split(' ')[0]+(e==='cpp'?' C++':e==='torch'?'':' Py'),color:EC[e],value:c.engines[e].median_ms})),3)}</div>`
+     +`<div class="card chart"><h3>95th percentile (slowest 5%)</h3><div class="sub">ms, lower is better</div>${lg}${ebars(E.map(e=>({label:ENG[e].split(' ')[0]+(e==='cpp'?' C++':e==='torch'?'':' Py'),color:EC[e],value:c.engines[e].p95_ms})),3)}</div>`
+     +`<div class="card chart"><h3>Time by sentence</h3><div class="sub">median ms per sentence</div>${lg}${linesN(idx.length,E.map(e=>({color:EC[e],values:idx.map(i=>c.engines[e].per_sentence_ms[i])})))}</div>`
+     +`<div class="card chart"><h3>Start-up time</h3><div class="sub">seconds: library import + model load + first call</div>${lg}${ebars(E.map(e=>({label:ENG[e].split(' ')[0]+(e==='cpp'?' C++':e==='torch'?'':' Py'),color:EC[e],value:c.engines[e].startup_s})),2)}</div>`;
+    if(E.every(e=>c.engines[e].peak_rss_mb!=null))h+=`<div class="card chart"><h3>Memory (peak, whole process)</h3><div class="sub">MB incl. the runtime libraries; each engine has its own process</div>${lg}${ebars(E.map(e=>({label:ENG[e].split(' ')[0]+(e==='cpp'?' C++':e==='torch'?'':' Py'),color:EC[e],value:c.engines[e].peak_rss_mb})),0)}</div>`;
+    if(e2.cpp&&e2.torch){const T='#8a8fb0',tk=e2.cpp.tokenize_ms_total;
+      h+=`<div class="card chart"><h3>Where the time goes</h3><div class="sub">sum over the ${c.n_model_sentences} model sentences, ms. Tokenizing + normalizer is Python in every design.</div><div class="legend"><span><i style="background:${T}"></i>tokenize + normalize (Python)</span><span><i style="background:${EC.torch}"></i>model, PyTorch</span><span><i style="background:${EC.cpp}"></i>model, C++</span></div>`
+       +stack([{label:'Today: all Python',parts:[{v:tk,color:T},{v:e2.torch.model_ms_total,color:EC.torch}]},{label:'Python tokenizer + C++ model',parts:[{v:tk,color:T},{v:e2.cpp.model_ms_total,color:EC.cpp}]}],'ms')
+       +`<div class="sub" style="margin-top:6px">Estimated whole-pipeline speed-up with a C++ model call: <b>${e2.hybrid_speedup?e2.hybrid_speedup.toFixed(2)+'&times;':'n/a'}</b> (sum of separately measured parts, not a single run).</div></div>`}
+    h+=`</div>`;
+    // numbers table
+    const row=(l,f,d=2)=>`<tr><td>${l}</td>${E.map(e=>`<td class="num">${f(c.engines[e])==null?'n/a':fmt(f(c.engines[e]),d)}</td>`).join('')}</tr>`;
+    h+=`<div class="card"><h2>Numbers</h2><p class="sub">Timed calls pooled over all rounds (${c.engines[E[0]].n_calls} calls per engine).</p><div class="tw"><table><tr><th>Metric</th>${E.map(e=>`<th class="num">${ENG[e]}</th>`).join('')}</tr>`
+     +row('Median (ms)',x=>x.median_ms,3)+row('Mean (ms)',x=>x.mean_ms,3)+row('p95 (ms)',x=>x.p95_ms,3)+row('Min (ms)',x=>x.min_ms,3)+row('Max (ms)',x=>x.max_ms,3)+row('Std deviation (ms)',x=>x.stdev_ms,3)+row('Throughput (sentences/s)',x=>x.throughput_sps,1)
+     +row('Library import (s)',x=>x.import_s,2)+row('Model load (s)',x=>x.load_s,2)+row('First call (ms)',x=>x.first_call_ms,1)+row('Start-up total (s)',x=>x.startup_s,2)+row('Memory after warm-up (MB)',x=>x.rss_mb,0)+row('Peak memory (MB)',x=>x.peak_rss_mb,0)
+     +`<tr><td>Median per round (ms)</td>${E.map(e=>`<td class="num">${c.engines[e].round_medians_ms.map(v=>fmt(v,3)).join(' / ')}</td>`).join('')}</tr>`
+     +row('Change first &rarr; last round (%)',x=>x.drift_pct,1)+`<tr><td>Library version</td>${E.map(e=>`<td class="num">${esc(c.engines[e].version||'')}</td>`).join('')}</tr></table></div></div>`;
+    // comparison table
+    h+=`<div class="card"><h2>Paired comparison</h2><p class="sub">Same sentences, engine A against engine B. Ratio &gt; 1: A is faster.</p><div class="tw"><table><tr><th>A vs B</th><th>What it isolates</th><th class="num">Median ratio</th><th class="num">95% interval</th><th class="num">Total-time ratio</th><th class="num">A faster on</th><th>Verdict</th></tr>`;
+    for(const p of c.compare)h+=`<tr><td>${ENG[p.a]} vs ${ENG[p.b]}</td><td>${esc(p.note)}</td><td class="num">${p.n?p.ratio_median.toFixed(3):'n/a'}</td><td class="num">${p.ci?p.ci[0].toFixed(2)+' &ndash; '+p.ci[1].toFixed(2):'n/a'}</td><td class="num">${p.n?p.ratio_total.toFixed(3):'n/a'}</td><td class="num">${p.a_faster_in} of ${p.n}</td><td>${esc(p.verdict)}</td></tr>`;
+    h+=`</table></div></div>`;
+    // answers
+    const ref=c.prep.ref_outputs||[],same=(i,e)=>ref.length?c.engines[e].outputs[i]===ref[i]:null;
+    const pa=Object.entries(c.pair_agree||{}).map(([k,v])=>`${k.split('|').map(z=>ENG[z]).join(' = ')}: ${v.same} of ${v.n}`).join(' &middot; ');
+    h+=`<div class="card"><h2>Answers and time, sentence by sentence</h2><p class="sub">Answers compared with the project's own output. Engines agreeing with each other on model sentences: ${pa||'n/a'}.</p><div class="tw"><table><tr><th>#</th><th>Input</th><th>Project answer</th>${E.map(e=>`<th>${ENG[e].split(' ')[0]}${e==='cpp'?' C++':e==='ort_py'?' Py':''}</th>`).join('')}<th class="num">ms (${E.map(e=>e==='cpp'?'C++':e==='ort_py'?'ORT-Py':'Torch').join(' / ')})</th></tr>`;
+    res.sentences.forEach((s,i)=>{const bad=E.some(e=>same(i,e)===false);
+      h+=`<tr class="${bad?'diff':''}"><td>${i+1}</td><td class="bn">${esc(s)}</td><td class="bn">${esc(ref[i]||'')}</td>${E.map(e=>`<td>${same(i,e)==null?'':same(i,e)?'<span class="ok">same</span>':'<span class="bad">DIFFERENT</span>'}</td>`).join('')}<td class="num">${c.prep.has_items[i]?E.map(e=>fmt(c.engines[e].per_sentence_ms[i],3)).join(' / '):'not a model sentence'}</td></tr>`});
+    h+=`</table></div></div>`;
+  }
+  h+=`<div class="card"><h2>Why this comparison is fair</h2><ul class="find">
+   <li><b>Same input:</b> the project's own code tokenizes every sentence once; PyTorch, Python ONNX Runtime and the C++ program all read that one file (identical token ids).</li>
+   <li><b>Same job in the timer:</b> pad rows into a batch &rarr; model call &rarr; pick the reading &rarr; apply reading fixes &rarr; rebuild the sentence. Tokenizing is outside the timer for all engines.</li>
+   <li><b>Same threads (${M.threads}):</b> PyTorch intra-op threads = ONNX Runtime intra-op threads = C++ threads; inter-op 1.</li>
+   <li><b>Same graph for the two ONNX engines</b> (one exported .onnx file, checked against PyTorch). So "C++ vs Python ONNX Runtime" isolates the language; "ONNX Runtime vs PyTorch" isolates the framework.</li>
+   <li><b>Separate process per engine and round,</b> one untimed warm-up pass over every sentence, then ${M.repeat} timed calls per sentence per round. Python's garbage collector is switched off while timing (a small advantage to Python).</li>
+   <li><b>Order bias removed:</b> ${M.rounds} round(s), engine order rotated and reversed (${M.orders.map(o=>o.map(e=>ENG[e].split(' ')[0]+(e==='cpp'?'-C++':e==='ort_py'?'-Py':'')).join('&rarr;')).join(' | ')}); calls from all rounds are pooled and the change between rounds is reported.</li>
+   <li><b>Sentences without a heteronym</b> never reach the model and are excluded for every engine. Statistics use per-sentence medians and a bootstrap over sentences.</li>
+   <li><b>Not controlled:</b> other programs on this PC, Docker CPU limits, CPU boost. Library versions: ${Object.entries(M.versions||{}).map(([e,v])=>ENG[e]+' '+esc(v)).join(', ')}.</li></ul></div>`;
+  h+=`<div class="card noprint"><h2>Export</h2><p class="sub">Run ${esc(M.timestamp)} &middot; ${esc(M.platform)} &middot; Python ${esc(M.python)} &middot; ${M.cpu_count} CPUs</p>
+   <button class="btn2" onclick="dl('json')">Download JSON</button> <button class="btn2" onclick="dl('csv')">Download CSV</button> <button class="btn2" onclick="window.print()">Print / save as PDF</button></div>`;
+  el.innerHTML=h;
 }
 init();
 </script>

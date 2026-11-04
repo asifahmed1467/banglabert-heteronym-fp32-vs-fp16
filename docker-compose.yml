@@ -8,3 +8,8 @@ services:
       # CHANGE the left side if your model folders are elsewhere
       - C:/Users/Asif/heteronym_models_fp32:/models/fp32:ro
       - C:/Users/Asif/heteronym_models_fp16:/models/fp16:ro
+      # exported ONNX files are cached here, so the slow export happens only once per model
+      - onnx_cache:/work/onnx
+
+volumes:
+  onnx_cache:
